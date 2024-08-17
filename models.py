@@ -100,7 +100,7 @@ class ModelWithDropout(L.LightningModule):
         mix_x,mix_y = self.mixup_data(latent_rep,y,self.alpha)
         logits_nomix = self.l2(latent_rep)
         logits_mix = self.l2(mix_x)
-        loss = F.cross_entropy(logits_mix,mix_y) + F.cross_entropy(logits_nomix,y)
+        loss = F.cross_entropy(logits_nomix,y)
         self.log('train_loss',loss,on_epoch=True,prog_bar=True)
         self.log('train_acc',self.accuracy(logits_nomix,y),on_epoch=True,prog_bar=True)
         return {"loss":loss}
@@ -118,12 +118,12 @@ class ModelWithDropout(L.LightningModule):
         """ Function to enable the dropout layers during test-time """
         for m in self.modules():
             if m.__class__.__name__.startswith('Dropout'):
-                m.eval()
+                m.train()
 
 
     def predict_step(self,batch,batch_idx):
         x,y = batch
-        self.enable_dropout()
+        #self.enable_dropout()
         self.drop.train()
         logits = torch.stack([torch.softmax(self.forward(x),dim=1) for _ in range(self.mc_iterations)])
         r = torch.mean(logits,dim=0)
